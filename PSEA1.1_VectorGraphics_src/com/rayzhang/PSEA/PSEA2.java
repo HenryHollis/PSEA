@@ -13,13 +13,16 @@ import java.awt.geom.Point2D;
 
 import javax.swing.*;
 
+import com.rayzhang.PSEA.PSEA.GrangerItem;
+import com.rayzhang.PSEA.PSEA.OutputGenerator;
+import com.rayzhang.PSEA.PSEA.Vector;
+
 import de.erichseifert.vectorgraphics2d.*;
 
 import java.beans.*;
-import java.util.Random;
 
 
-public class PSEA extends JPanel {
+public class PSEA2 extends JPanel {
     static int IMAGE_WIDTH = 500, IMAGE_HEIGHT = 700;
     static int SUMMARY_IMAGE_WIDTH = 1;
     static double SUMMARY_SCALE_FACTOR = 40d;
@@ -134,484 +137,114 @@ public class PSEA extends JPanel {
     }
 
     public static void main(String[] args) {
-        SwingUtilities.invokeLater(new Runnable() {
-            public void run() {
-                //Turn off metal's use of bold fonts
-                UIManager.put("swing.boldMetal", Boolean.FALSE); 
-
-                paintFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-                paintFrame.add(paintPanel);
-                paintFrame.pack();
-                //resultsSummaryFrame.setVisible(true);
-                paintFrame.setSize(IMAGE_WIDTH + 100, IMAGE_HEIGHT + 100);
-
-                paintSummaryFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-                paintSummaryFrame.add(paintSummaryPanel);
-                paintSummaryFrame.pack();
-                //paintSummaryFrame.setVisible(true);
-                paintSummaryFrame.setSize(SUMMARY_IMAGE_WIDTH + 100, SUMMARY_IMAGE_WIDTH + 100);
-
-                JFrame cagsFrame = new JFrame("Phase set enrichment analysis (PSEA)");
-                cagsFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-                cagsFrame.add(new PSEA());
-                cagsFrame.pack();
-                cagsFrame.setVisible(true);
-                cagsFrame.setResizable(false);
-            }
-        });
+  	
+    	new PSEA2(args);
     }
 
-    public PSEA() {
-        final JFileChooser fileChooser = new JFileChooser();
-        final ArrayList<JComponent> components = new ArrayList<JComponent>();
+    public PSEA2(String[] args) {
+    	boolean isOK = true;
+    	String genes_path = args[0];
+    	System.out.println("Absolute Path to gene-acrophase file: " + genes_path);
+    	String lib_path = args[1];
+    	System.out.println("Absolute Path to gmt file: " + lib_path);
+    	String output_folder = args[2];
+    	System.out.println("Absolute Path to output folder: " + output_folder);
 
-        setLayout(new GridBagLayout());
-        GridBagConstraints constraints = new GridBagConstraints();
-        constraints.anchor = GridBagConstraints.ABOVE_BASELINE_LEADING;
-        
-        // STEP 1
-        constraints.gridy++;
-        constraints.gridx = 0;
-        final JLabel step1Label = new JLabel("  STEP 1    ");
-        add(step1Label, constraints);
-        components.add(step1Label);
-        
-        constraints.gridx = 1;
-        constraints.gridwidth = 2;
-        final JLabel itemsFileLabel = new JLabel("Select items file:");
-        add(itemsFileLabel, constraints);
-        components.add(itemsFileLabel);
-        
-        constraints.gridy++;
-        final JTextField itemsFileTextField = new JTextField("", 35);
-        //final JTextField itemsFileTextField = new JTextField("/Users/rayzhang/Desktop/Gene-phase set enrichent analysis/data/bfat.txt", 35);
-        add(itemsFileTextField, constraints);
-        components.add(itemsFileTextField);
-        
-        constraints.gridx = 3;
-        constraints.gridwidth = 1;
-        final JButton itemsFileButton = new JButton("Browse...");
-        itemsFileButton.setPreferredSize(new Dimension(itemsFileButton.getPreferredSize().width, itemsFileTextField.getPreferredSize().height));
-        itemsFileButton.addActionListener(new ActionListener() {
-            public void actionPerformed(ActionEvent e) {
-                fileChooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
-                if (fileChooser.showOpenDialog(PSEA.this) == JFileChooser.APPROVE_OPTION) itemsFileTextField.setText(fileChooser.getSelectedFile().getPath());
-            }
-        });
-        add(itemsFileButton, constraints);
-        components.add(itemsFileButton);
-        
-        constraints.gridy++;
-        constraints.gridx = 1;
-        step1StatusLabel = new JLabel(" ");
-        add(step1StatusLabel, constraints);
-        constraints.gridy++;
-        constraints.gridx = 0;
-        add(new JLabel(" "), constraints);
+		minSetSize = 5; 
+		if (args.length > 3) minSetSize = Integer.parseInt(args[3]);
+		System.out.println("Min geneset size: " + minSetSize);
 
-        
-        // STEP 2
-        constraints.gridy++;
-        constraints.gridx = 0;
-        final JLabel step2Label = new JLabel("  STEP 2    ");
-        add(step2Label, constraints);
-        components.add(step2Label);
-        
-        constraints.gridx = 1;
-        constraints.gridwidth = 2;
-        final JLabel setsFileLabel = new JLabel("Select sets file:");
-        add(setsFileLabel, constraints);
-        components.add(setsFileLabel);
-        
-        constraints.gridy++;
-        final JTextField setsFileTextField = new JTextField("", 35);
-        //final JTextField setsFileTextField = new JTextField("/Users/rayzhang/Desktop/Gene-phase set enrichent analysis/data/c2.cp.v4.0.symbols.gmt", 35);
-        add(setsFileTextField, constraints);
-        components.add(setsFileTextField);
-        
-        constraints.gridx = 3;
-        constraints.gridwidth = 1;
-        final JButton setsFileButton = new JButton("Browse...");
-        setsFileButton.setPreferredSize(new Dimension(setsFileButton.getPreferredSize().width, setsFileTextField.getPreferredSize().height));
-        setsFileButton.addActionListener(new ActionListener() {
-            public void actionPerformed(ActionEvent e) {
-                fileChooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
-                if (fileChooser.showOpenDialog(PSEA.this) == JFileChooser.APPROVE_OPTION) setsFileTextField.setText(fileChooser.getSelectedFile().getPath());
-            }
-        });
-        add(setsFileButton, constraints);
-        components.add(setsFileButton);
-        
-        constraints.gridy++;
-        constraints.gridx = 1;
-        step2StatusLabel = new JLabel(" ");
-        add(step2StatusLabel, constraints);
-        constraints.gridy++;
-        constraints.gridx = 0;
-        add(new JLabel(" "), constraints);
+	    maxPermutations = 10000; 
+	    if (args.length > 4) maxPermutations = Integer.parseInt(args[4]);
+		System.out.println("Max permutations: " + maxPermutations);
 
-        
-        // STEP 3
-        constraints.gridy++;
-        constraints.gridx = 0;
-        final JLabel step3Label = new JLabel("  STEP 3    ");
-        add(step3Label, constraints);
-        components.add(step3Label);
-        
-        constraints.gridx = 1;
-        constraints.gridwidth = 2;
-        final JLabel parametersLabel = new JLabel("Select parameters:");
-        add(parametersLabel, constraints);
-        components.add(parametersLabel);
+	    exportFormat = "eps";
+	    if (args.length > 5) exportFormat = args[5];
+		System.out.println("Using output img format: " + exportFormat);
 
-        constraints.gridy++;
-        final JPanel panel3 = new JPanel();
-        panel3.setLayout(new FlowLayout());
-        final JLabel domainMinLabel = new JLabel("Domain from ");
-        panel3.add(domainMinLabel);
-        components.add(domainMinLabel);
-        final JTextField domainMinTextField = new JTextField("0", 3);
-        panel3.add(domainMinTextField);
-        components.add(domainMinTextField);
-        final JLabel domainMaxLabel = new JLabel(" to ");
-        panel3.add(domainMaxLabel);
-        components.add(domainMaxLabel);
-        final JTextField domainMaxTextField = new JTextField("24", 3);
-        panel3.add(domainMaxTextField);
-        components.add(domainMaxTextField);
-        add(panel3, constraints);
-        
-        constraints.gridy++;
-        final JPanel panel1 = new JPanel();
-        panel1.setLayout(new FlowLayout());
-        final JLabel minSetSizeLabel = new JLabel("Min items / set: ");
-        panel1.add(minSetSizeLabel);
-        components.add(minSetSizeLabel);
-        final JTextField minSetSizeTextField = new JTextField("10", 3);
-        panel1.add(minSetSizeTextField);
-        components.add(minSetSizeTextField);
-//        add(panel1, constraints);
-        final JLabel maxPermutationsLabel = new JLabel("    Max sims / test: ");
-        panel1.add(maxPermutationsLabel);
-        components.add(maxPermutationsLabel);
-        final JTextField maxPermutationsTextField = new JTextField("10000", 6);
-        panel1.add(maxPermutationsTextField);
-        components.add(maxPermutationsTextField);
-        add(panel1, constraints);
-        
-        constraints.gridy++;
-        final JPanel panel4 = new JPanel();
-        panel4.setLayout(new FlowLayout());
-        final JLabel paintLowerBoundLabel1 = new JLabel("Save image if [");
-        panel4.add(paintLowerBoundLabel1);
-        components.add(paintLowerBoundLabel1);
-        final JRadioButton pButton = new JRadioButton("p ");
-        pButton.setSelected(false);
-        final JRadioButton qButton = new JRadioButton("q");
-        qButton.setSelected(true);
-        final ButtonGroup pqButtonGroup = new ButtonGroup();
-        pqButtonGroup.add(pButton);
-        pqButtonGroup.add(qButton);
-        panel4.add(pButton);
-        components.add(pButton);
-        panel4.add(qButton);
-        components.add(qButton);
-        final JLabel paintLowerBoundLabel2 = new JLabel("] value < ");
-        panel4.add(paintLowerBoundLabel2);
-        components.add(paintLowerBoundLabel2);
-        final JTextField paintLowerBoundTextField = new JTextField("0.05", 4);
-        panel4.add(paintLowerBoundTextField);
-        components.add(paintLowerBoundTextField);
-        add(panel4, constraints);
-        
-        final JCheckBox showGeneNamesCheckBox = new JCheckBox("Print genes");
-        showGeneNamesCheckBox.setSelected(true);
-        panel4.add(showGeneNamesCheckBox);
-        components.add(showGeneNamesCheckBox);
-        
-        /*
-        constraints.gridy++;
-        final JPanel panel5 = new JPanel();
-        panel5.setLayout(new FlowLayout());
-        final JLabel imageWidthLabel = new JLabel("Image width (px): ");
-        panel5.add(imageWidthLabel);
-        components.add(imageWidthLabel);
-        final JTextField imageWidthTextField = new JTextField("500", 4);
-        panel5.add(imageWidthTextField);
-        components.add(imageWidthTextField);
-        final JLabel numGeneNamesDrawLabel = new JLabel("    Max item names to draw: ");
-        panel5.add(numGeneNamesDrawLabel);
-        components.add(numGeneNamesDrawLabel);
-        final JTextField numGeneNamesDrawTextField = new JTextField("20", 3);
-        panel5.add(numGeneNamesDrawTextField);
-        components.add(numGeneNamesDrawTextField);
-        add(panel5, constraints);
-        
-        constraints.gridy++;
-        final JPanel panel6 = new JPanel();
-        panel6.setLayout(new FlowLayout());
-        final JLabel summaryImageWidthLabel = new JLabel("* Width of CDF images. Summary images also sized proportionally.");
-        Font summaryImageWidthLabelFont = summaryImageWidthLabel.getFont();
-        summaryImageWidthLabel.setFont(new Font(summaryImageWidthLabelFont.getFontName(), Font.ITALIC, summaryImageWidthLabelFont.getSize()));
-        summaryImageWidthLabel.setForeground(Color.GRAY);
-        panel6.add(summaryImageWidthLabel);
-        add(panel6, constraints);
-        */
-        
-        constraints.gridwidth = 1;
-        constraints.gridy++;
-        constraints.gridx = 1;
-        step3StatusLabel = new JLabel(" ");
-        add(step3StatusLabel, constraints);
-        constraints.gridy++;
-        constraints.gridx = 0;
-        add(new JLabel(" "), constraints);
 
+	    logMaxPermutations = -Math.log10(maxPermutations);
+	    domainMin = 0;
+	    domainMax = 24;
+	    domainRange = Math.abs(domainMax - domainMin);
+	    boundByQ = true;
+	    paintLowerBound = 0.05;
+	    printGeneNames = true;
+	    numGeneNamesDraw = 1000;
+        imageWidth = 500;
         
-        // STEP 4
-        constraints.gridy++;
-        constraints.gridx = 0;
-        final JLabel step4Label = new JLabel("  STEP 4    ");
-        add(step4Label, constraints);
-        components.add(step4Label);
         
-        constraints.gridx = 1;
-        constraints.gridwidth = 2;
-        final JLabel outputFolderLabel = new JLabel("Select output folder:");
-        add(outputFolderLabel, constraints);
-        components.add(outputFolderLabel);
+        if (!checkStep3()) isOK = false;
         
-        constraints.gridy++;
-        final JTextField outputFolderTextField = new JTextField("", 35);
-        //final JTextField outputFolderTextField = new JTextField("/Users/rayzhang/Desktop/Gene-phase set enrichent analysis/temp_output2", 35);
-        add(outputFolderTextField, constraints);
-        components.add(outputFolderTextField);
+        if (genes_path.equals("")) {
+            System.out.println("Error: no gene file selected");
+            isOK = false;
+        } else {
+            itemsFile = new File(genes_path);
+            if (!checkStep1()) isOK = false;
+        }
         
-        constraints.gridx = 3;
-        constraints.gridwidth = 1;
-        final JButton outputFolderButton = new JButton("Browse...");
-        outputFolderButton.setPreferredSize(new Dimension(outputFolderButton.getPreferredSize().width, outputFolderTextField.getPreferredSize().height));
-        outputFolderButton.addActionListener(new ActionListener() {
-            public void actionPerformed(ActionEvent e) {
-                fileChooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
-                if (fileChooser.showOpenDialog(PSEA.this) == JFileChooser.APPROVE_OPTION) outputFolderTextField.setText(fileChooser.getSelectedFile().getPath());
-            }
-        });
-        add(outputFolderButton, constraints);
-        components.add(outputFolderButton);
-
-        constraints.gridy++;
-        constraints.gridx = 1;
-        constraints.gridwidth = 2;
-        final JPanel panel7 = new JPanel();
-        panel7.setLayout(new FlowLayout());
-        final JLabel exportFormatLabel = new JLabel("Export images as: ");
-        panel7.add(exportFormatLabel);
-        components.add(exportFormatLabel);
-        final JRadioButton svgButton = new JRadioButton(".svg (fastest) ");
-        svgButton.setSelected(true);
-        final JRadioButton pdfButton = new JRadioButton(".pdf ");
-        pdfButton.setSelected(false);
-        final JRadioButton epsButton = new JRadioButton(".eps ");
-        epsButton.setSelected(false);
-        final ButtonGroup exportFormatButtonGroup = new ButtonGroup();
-        exportFormatButtonGroup.add(svgButton);
-        exportFormatButtonGroup.add(pdfButton);
-        exportFormatButtonGroup.add(epsButton);
-        panel7.add(svgButton);
-        components.add(svgButton);
-        panel7.add(pdfButton);
-        components.add(pdfButton);
-        panel7.add(epsButton);
-        components.add(epsButton);
-        add(panel7, constraints);
+        if (lib_path.equals("")) {
+            System.err.println("Error: no gmt file selected");
+            isOK = false;
+        } else {
+            setsFile = new File(lib_path);
+            if (!checkStep2()) isOK = false;
+        }
         
-        constraints.gridy++;
-        constraints.gridx = 1;
-        step4StatusLabel = new JLabel(" ");
-        add(step4StatusLabel, constraints);
-        constraints.gridy++;
-        constraints.gridx = 0;
-        add(new JLabel(" "), constraints);
-
+        if (output_folder.equals("")) {
+            System.err.println("Error: no file selected");
+            isOK = false;
+        } else {
+            outputFolder = new File(output_folder);
+            if (!checkStep4()) isOK = false;
+        }
         
-        // STEP 5
-        constraints.gridy++;
-        constraints.gridx = 0;
-        final JLabel step5Label = new JLabel("  STEP 5    ");
-        add(step5Label, constraints);
-        components.add(step5Label);
+        if (isOK) {
+        	   
+               OutputGenerator();
+        }
         
-        constraints.gridx = 1;
-        constraints.gridwidth = 2;
-        final JLabel generateOutputLabel = new JLabel("Generate output:");
-        add(generateOutputLabel, constraints);
-        components.add(generateOutputLabel);
-        
-        constraints.gridy++;
-        constraints.gridx = 2;
-        constraints.gridwidth = 1;
-        final JProgressBar progressBar = new JProgressBar(0, 100);
-        progressBar.setValue(0);
-        progressBar.setStringPainted(true);
-        progressBar.setVisible(false);
-        add(progressBar, constraints);
-        components.add(progressBar);
-        
-        constraints.gridx = 1;
-        final JButton generateOutputButton = new JButton("START");
-        generateOutputButton.addActionListener(new ActionListener() {
-            public void actionPerformed(ActionEvent e) {
-                try {
-                    if (!progressBar.isVisible()) {
-                        boolean isOK = true;
-                        String text;
-                        
-                        try {
-                            step3StatusLabel.setText(" ");
-                            minSetSize = Integer.parseInt(minSetSizeTextField.getText());
-                            maxPermutations = Integer.parseInt(maxPermutationsTextField.getText());
-                            logMaxPermutations = -Math.log10(maxPermutations);
-                            domainMin = Double.parseDouble(domainMinTextField.getText());
-                            domainMax = Double.parseDouble(domainMaxTextField.getText());
-                            domainRange = Math.abs(domainMax - domainMin);
-                            boundByQ = qButton.isSelected();
-                            paintLowerBound = Double.parseDouble(paintLowerBoundTextField.getText());
-                            printGeneNames = showGeneNamesCheckBox.isSelected();
-                            //numGeneNamesDraw = Integer.parseInt(numGeneNamesDrawTextField.getText());
-                            //imageWidth = Integer.parseInt(imageWidthTextField.getText());
-                            
-                            numGeneNamesDraw = 1000;
-                            imageWidth = 500;
-                            if (!checkStep3()) isOK = false;
-                        } catch (Exception ee) {
-                            step3StatusLabel.setForeground(new Color(191, 0, 0));
-                            step3StatusLabel.setText("Error: parameters not valid");
-                            isOK = false;
-                        }
-                        
-                        text = itemsFileTextField.getText();
-                        if (text.equals("")) {
-                            step1StatusLabel.setForeground(new Color(191, 0, 0));
-                            step1StatusLabel.setText("Error: no file selected");
-                            isOK = false;
-                        } else {
-                            step1StatusLabel.setText(" ");
-                            itemsFile = new File(text);
-                            if (!checkStep1()) isOK = false;
-                        }
-                        
-                        text = setsFileTextField.getText();
-                        if (text.equals("")) {
-                            step2StatusLabel.setForeground(new Color(191, 0, 0));
-                            step2StatusLabel.setText("Error: no file selected");
-                            isOK = false;
-                        } else {
-                            step2StatusLabel.setText(" ");
-                            setsFile = new File(text);
-                            if (!checkStep2()) isOK = false;
-                        }
-                        
-                        text = outputFolderTextField.getText();
-                        if (text.equals("")) {
-                            step4StatusLabel.setForeground(new Color(191, 0, 0));
-                            step4StatusLabel.setText("Error: no file selected");
-                            isOK = false;
-                        } else {
-                            step4StatusLabel.setText(" ");
-                            outputFolder = new File(text);
-                            if (!checkStep4()) isOK = false;
-                        }
-                        
-                        if (svgButton.isSelected()) exportFormat = "svg";
-                        else if (pdfButton.isSelected()) exportFormat = "pdf";
-                        else exportFormat = "eps";
-                        
-                        if (isOK) {
-                            for (JComponent component : components) component.setEnabled(false);
-                            generateOutputButton.setText("ABORT");
-                            progressBar.setValue(0);
-                            progressBar.setVisible(true);
-                            
-                            outputGenerator = new OutputGenerator();
-                            outputGenerator.addPropertyChangeListener(new PropertyChangeListener() {
-                                public void propertyChange(PropertyChangeEvent evt) {
-                                    if ("progress" == evt.getPropertyName()) {
-                                        int progress = (Integer) evt.getNewValue();
-                                        progressBar.setValue(progress);
-                                        if (progress >= 100 && progressBar.isVisible()) generateOutputButton.setText("DONE");
-                                    }
-                                }
-                            });
-                            outputGenerator.execute();
-                        }
-                    } else {
-                        try {
-                            outputGenerator.cancel(true);
-                            outputGenerator = null;
-                        } catch (Exception ex) {}
-                        for (JComponent component : components) component.setEnabled(true);
-                        generateOutputButton.setText("START");
-                        progressBar.setValue(0);
-                        progressBar.setVisible(false);
-                    }
-                } catch (Exception ex) {}
-            }
-        });
-        add(generateOutputButton, constraints);
-        
-        constraints.gridy++;
-        constraints.gridx = 1;
-        step5StatusLabel = new JLabel(" ");
-        add(step5StatusLabel, constraints);
-        constraints.gridy++;
-        constraints.gridx = 0;
-        add(new JLabel(" "), constraints);
+       
     }
-
     public boolean checkStep1() {
         items = new HashMap<String, Double>();
         
         String line = "";
         int lineNum = 0;
         try {
-            if (itemsFile.isFile() && itemsFile.exists()) {
+            if (itemsFile.exists()&& itemsFile.isFile() ) { 
                 BufferedReader reader = new BufferedReader(new FileReader(itemsFile));
                 while ((line = reader.readLine()) != null) {
                     lineNum++;
                     if (!line.trim().equals("")) {
                         String[] tokens = line.split("\t");
                         if (tokens.length != 2) {
-                            step1StatusLabel.setForeground(new Color(191, 0, 0));
-                            step1StatusLabel.setText("Error: " + (tokens.length > 2 ? "more" : "less") + " than 2 columns found on line " + lineNum);
+                            System.err.println("Error: " + (tokens.length > 2 ? "more" : "less") + " than 2 columns found on line " + lineNum);
                             reader.close();
                             return false;
                         } else {
                             String id = tokens[0].trim().toUpperCase();
                             double value = Double.parseDouble(tokens[1].trim());
                             if (items.containsKey(id)) {
-                                step1StatusLabel.setForeground(new Color(191, 0, 0));
-                                step1StatusLabel.setText("Error: duplicate item id " + id + " found on line " + lineNum);
+                                System.err.println("Error: duplicate item id " + id + " found on line " + lineNum);
                                 reader.close();
                                 return false;
                             } else items.put(id, value);
                         }
                     }
                 }
-                if (items.size() == 0) step1StatusLabel.setForeground(new Color(191, 0, 0));
-                else step1StatusLabel.setForeground(new Color(0, 191, 0));
-                step1StatusLabel.setText("Successfully loaded " + items.size() + " items");
+               
+                System.out.println("Successfully loaded " + items.size() + " items");
                 reader.close();
                 return true;
             } else {
-                step1StatusLabel.setForeground(new Color(191, 0, 0));
-                step1StatusLabel.setText("Error: this is not an existing file");
+                System.err.println("Error: this is not an existing file");
                 return false;
             }
         } catch (Exception ex) {
             items = new HashMap<String, Double>();
-            step1StatusLabel.setForeground(new Color(191, 0, 0));
-            step1StatusLabel.setText("Error: invalid data on line " + lineNum);
+            System.err.println("Error: invalid data on line " + lineNum);
             return false;
         }
     }
@@ -632,8 +265,7 @@ public class PSEA extends JPanel {
                         if (tokens.length >= 2 + minSetSize) {
                             String id = tokens[0].trim();
                             if (sets.containsKey(id)) {
-                                step2StatusLabel.setForeground(new Color(191, 0, 0));
-                                step2StatusLabel.setText("Error: duplicate set id " + id + " found on line " + lineNum);
+                                System.err.println("Error: duplicate set id " + id + " found on line " + lineNum);
                                 reader.close();
                                 return false;
                             } else {
@@ -655,40 +287,33 @@ public class PSEA extends JPanel {
                     setOfSameSizedSets.add(key);
                     setSizeMap.put(setSize, setOfSameSizedSets);
                 }
-                if (sets.size() == 0) step2StatusLabel.setForeground(new Color(191, 0, 0));
-                else step2StatusLabel.setForeground(new Color(0, 191, 0));
-                step2StatusLabel.setText("Successfully loaded " + sets.size() + " items");
+                
+                System.out.println("Successfully loaded " + sets.size() + " items");
                 reader.close();
                 return true;
             } else {
-                step2StatusLabel.setForeground(new Color(191, 0, 0));
-                step2StatusLabel.setText("Error: this is not an existing file");
+            	System.err.println("Error: this is not an existing file");
                 return false;
             }
         } catch (Exception ex) {
             sets = new HashMap<String, HashSet<String>>();
-            step2StatusLabel.setForeground(new Color(191, 0, 0));
-            step2StatusLabel.setText("Error: invalid data on line " + lineNum);
+            System.err.println("Error: invalid data on line " + lineNum);
             return false;
         }
     }
 
     public boolean checkStep3() {
         if (minSetSize < 1) {
-            step3StatusLabel.setForeground(new Color(191, 0, 0));
-            step3StatusLabel.setText("Error: min items/set must be at least 1");
+            System.out.println("Error: min items/set must be at least 1");
             return false;
         } else if (maxPermutations < 10) {
-            step3StatusLabel.setForeground(new Color(191, 0, 0));
-            step3StatusLabel.setText("Error: max sims/test must be at least 10");
+            System.out.println("Error: max sims/test must be at least 10");
             return false;
         } else if (paintLowerBound < 0d || paintLowerBound > 1d) {
-            step3StatusLabel.setForeground(new Color(191, 0, 0));
-            step3StatusLabel.setText("Error: p-value bounds must be between 0 and 1");
+            System.out.println("Error: p-value bounds must be between 0 and 1");
             return false;
         } else if (numGeneNamesDraw < 0) {
-            step3StatusLabel.setForeground(new Color(191, 0, 0));
-            step3StatusLabel.setText("Error: cannot draw less than 0 gene names");
+            System.out.println("Error: cannot draw less than 0 gene names");
             return false;
         }
         return true;
@@ -699,8 +324,7 @@ public class PSEA extends JPanel {
             if (!outputFolder.exists()) {
                 if (outputFolder.mkdir()) return true;
                 else {
-                    step4StatusLabel.setForeground(new Color(0, 191, 0));
-                    step4StatusLabel.setText("Error: unable to create this folder");
+                    System.err.println("Error: unable to create this folder");
                     return false;
                 }
             } else {
@@ -708,27 +332,22 @@ public class PSEA extends JPanel {
                 else {
                     if (outputFolder.mkdir()) return true;
                     else {
-                        step4StatusLabel.setForeground(new Color(0, 191, 0));
-                        step4StatusLabel.setText("Error: unable to create this folder");
+                    	System.err.println("Error: unable to create this folder");
                         return false;
                     }
                 }
             }
         } catch (Exception ex) {
-            step4StatusLabel.setForeground(new Color(191, 0, 0));
-            step4StatusLabel.setText("Error: unable to access this folder");
+        	System.err.println("Error: unable to access this folder");
             return false;
         }
     }
 
-    class OutputGenerator extends SwingWorker<Void, Void> {
-        File resultFile, tempFile, bgLessThanFolder, uniLessThanFolder;
+    public void OutputGenerator() {
+    	File resultFile, tempFile, bgLessThanFolder, uniLessThanFolder;
         PrintWriter writer;
-
-        @Override
-        public Void doInBackground() {
-            try {
-                setProgress(0);
+        
+        try {
                 (bgLessThanFolder = new File(outputFolder.getAbsolutePath() + "/vsBackground")).mkdir();
                 (uniLessThanFolder = new File(outputFolder.getAbsolutePath() + "/vsUniform")).mkdir();
                 tempFile = new File(outputFolder.getAbsolutePath() + "/results.tmp");
@@ -737,7 +356,6 @@ public class PSEA extends JPanel {
                 
                 TreeMap<String, Vector> vectors = new TreeMap<String, Vector>();
                 TreeMap<String, Vector> vectorsUni = new TreeMap<String, Vector>();
-                
                 if (items.size() > minSetSize) {
                     double[] backgroundValues = new double[items.size()];
                     {
@@ -753,17 +371,16 @@ public class PSEA extends JPanel {
 
                     int setCount = 0;
                     for (int setSize : setSizeMap.keySet()) {
-                        if (isCancelled()) break;
                         HashSet<String> setOfSameSizedSets = setSizeMap.get(setSize);
                         
                         ArrayList<Double> storedNullTestStatisticsSmaller = new ArrayList<Double>();
                         ArrayList<Double> storedNullTestStatisticsBigger = new ArrayList<Double>();
                         ArrayList<Double> storedNullTestStatisticsSmallerUni = new ArrayList<Double>();
                         ArrayList<Double> storedNullTestStatisticsBiggerUni = new ArrayList<Double>();
-
+                        //System.out.println(setOfSameSizedSets);
+                        
                         for (String setId : setOfSameSizedSets) {
                             if (setSize >= minSetSize) {
-                                if (isCancelled()) break;
                                 HashSet<String> set = sets.get(setId);
                                 String[] setItemIds = new String[setSize];
                                 double[] setValues = new double[setSize];
@@ -787,11 +404,9 @@ public class PSEA extends JPanel {
                                 if (storedNullTestStatisticsBigger.size() < 10) {
                                     storedNullTestStatisticsBigger = storedNullTestStatisticsSmaller;
                                     for (int i = storedNullTestStatisticsBigger.size(); i < 10; i++) {
-                                        if (isCancelled()) break;
                                         double nullTestStatistic = getTestStatistic(getCdf(getPdf(sample(backgroundValues, setSize))), bgCdf, false);
                                         storedNullTestStatisticsBigger.add(nullTestStatistic);
                                     }
-                                    if (isCancelled()) break;
                                     Collections.sort(storedNullTestStatisticsBigger);
                                 }
                                 if (storedNullTestStatisticsSmallerUni.size() < 1) {
@@ -804,14 +419,12 @@ public class PSEA extends JPanel {
                                 if (storedNullTestStatisticsBiggerUni.size() < 10) {
                                     storedNullTestStatisticsBiggerUni = storedNullTestStatisticsSmallerUni;
                                     for (int i = storedNullTestStatisticsBiggerUni.size(); i < 10; i++) {
-                                        if (isCancelled()) break;
                                         double[] valuesUni = new double[setSize];
                                         for (int j = 0; j < valuesUni.length; j++) valuesUni[j] = random.nextDouble();
                                         TreeMap<Double, Double> newCdf = getCdf(getPdf(valuesUni));
                                         double nullTestStatisticUni = getTestStatistic(newCdf, getUniCdf(newCdf, 0.0, 1.0), true);
                                         storedNullTestStatisticsBiggerUni.add(nullTestStatisticUni);
                                     }
-                                    if (isCancelled()) break;
                                     Collections.sort(storedNullTestStatisticsBiggerUni);
                                 }
 
@@ -821,7 +434,6 @@ public class PSEA extends JPanel {
                                 double bestPValueBiggerUni = getP(testStatisticUni, getPrimitiveArray(storedNullTestStatisticsBiggerUni));
 
                                 while (storedNullTestStatisticsBigger.size() < maxPermutations) {
-                                    if (isCancelled()) break;
                                     boolean isDone = true;
                                     
                                     double resolution = 1.0 / (double)storedNullTestStatisticsBigger.size();
@@ -834,18 +446,15 @@ public class PSEA extends JPanel {
                                         bestPValueSmaller = bestPValueBigger;
                                         int numPermutations = Math.min(10 * storedNullTestStatisticsBigger.size(), maxPermutations);
                                         for (int i = storedNullTestStatisticsBigger.size(); i < numPermutations; i++) {
-                                            if (isCancelled()) break;
                                             double nullTestStatistic = getTestStatistic(getCdf(getPdf(sample(backgroundValues, setSize))), bgCdf, false);
                                             storedNullTestStatisticsBigger.add(nullTestStatistic);
                                         }
-                                        if (isCancelled()) break;
                                         Collections.sort(storedNullTestStatisticsBigger);
                                         bestPValueBigger = getP(testStatistic, getPrimitiveArray(storedNullTestStatisticsBigger));
                                     }
                                 }
                                 
                                 while (storedNullTestStatisticsBiggerUni.size() < maxPermutations) {
-                                    if (isCancelled()) break;
                                     boolean isDone = true;
 
                                     double resolution = 1.0 / (double)storedNullTestStatisticsBiggerUni.size();
@@ -858,19 +467,17 @@ public class PSEA extends JPanel {
                                         bestPValueSmallerUni = bestPValueBiggerUni;
                                         int numPermutations = Math.min(10 * storedNullTestStatisticsBiggerUni.size(), maxPermutations);
                                         for (int i = storedNullTestStatisticsBiggerUni.size(); i < numPermutations; i++) {
-                                            if (isCancelled()) break;
                                             double[] valuesUni = new double[setSize];
                                             for (int j = 0; j < valuesUni.length; j++) valuesUni[j] = random.nextDouble();
                                             TreeMap<Double, Double> newCdf = getCdf(getPdf(valuesUni));
                                             double nullTestStatisticUni = getTestStatistic(newCdf, getUniCdf(newCdf, 0.0, 1.0), true);
                                             storedNullTestStatisticsBiggerUni.add(nullTestStatisticUni);
                                         }
-                                        if (isCancelled()) break;
                                         Collections.sort(storedNullTestStatisticsBiggerUni);
                                         bestPValueBiggerUni = getP(testStatisticUni, getPrimitiveArray(storedNullTestStatisticsBiggerUni));
                                     }
                                 }
-                                if (isCancelled()) break;
+
 
                                 double[] vectorAverage = new double[2];
                                 for (int i = 0; i < setItemIds.length; i++) {
@@ -996,13 +603,13 @@ public class PSEA extends JPanel {
                             }
                             
                             setCount++;
-                            setProgress((int)(((double)setCount / (double)sets.size()) * 90d));
                         }
+                       
                     }
                 }
                 writer.flush();
                 writer.close();
-                setProgress(90);
+                //setProgress(90);
                 
                 resultFile = new File(outputFolder.getAbsolutePath() + "/results.txt");
                 BufferedReader reader = new BufferedReader(new FileReader(tempFile));
@@ -1015,6 +622,7 @@ public class PSEA extends JPanel {
                 String line = reader.readLine();
                 while ((line = reader.readLine()) != null) {
                 	String[] tokens = line.split("\t");
+                	System.out.println(tokens[1]);
                 	setIdList.add(tokens[0]);
                 	setNList.add(tokens[1]);
                 	if (tokens[2].equals("NA")) {
@@ -1022,6 +630,8 @@ public class PSEA extends JPanel {
 	                	kuiperUniList.add(-1d);
                 	} else {
 	                	kuiperBgList.add(Double.parseDouble(tokens[2]));
+	                	System.out.println("breakpoint 1");
+	                	System.out.println(tokens[2]);
 	                	kuiperUniList.add(Double.parseDouble(tokens[3]));
                 	}
                 	vectorMagList.add(tokens[4]);
@@ -1063,28 +673,27 @@ public class PSEA extends JPanel {
                 	writer.print("\t" + vectorMagList.get(i));
                 	writer.println("\t" + vectorValList.get(i));
 
-                    setProgress((int)(((double)i / (double)setIdList.size()) * 7d) + 90);
+                    //setProgress((int)(((double)i / (double)setIdList.size()) * 7d) + 90);
                 }
                 writer.flush();
                 writer.close();
                 tempFile.delete();
-                setProgress(98);
+                //setProgress(98);
                 
                 SUMMARY_SCALE_FACTOR = (double)IMAGE_WIDTH / 500d;
-                
+                //Graphics2D g3 = (Graphics2D) getGraphics();
+
                 for (int i = 0; i < 2; i++) {
-                    Graphics2D g2 = (Graphics2D) getGraphics();
                     int totalDistance = (int)(SUMMARY_SCALE_FACTOR*120d);
                     for (Vector vector : vectors.values()) {
                         int fontSize = (int)(vector.length * SUMMARY_SCALE_FACTOR * fontScaler);
                         if (fontSize > 1) {
-                            g2.setFont(new Font("Arial", Font.PLAIN, fontSize));
+                        	//g3.setFont(new Font("Arial", Font.PLAIN, fontSize));
                             double r = totalDistance;
                             double a = getRads(0, 0, vector.x, vector.y);
                             a = Math.PI*2.0 - a;
                             Point point = getPoint(new Point(0, 0), r, a);
-                            totalDistance += g2.getFontMetrics().getHeight();
-                            System.out.println(g2.getFontMetrics().getHeight());
+                            totalDistance += 50; //g3.getFontMetrics().getHeight();
                         }
                     }
                     SUMMARY_IMAGE_WIDTH = (int)(totalDistance * 2.2d);
@@ -1094,20 +703,21 @@ public class PSEA extends JPanel {
                 paintSummaryPanel.vectors = new ArrayList<Vector>(vectors.values());
                 Collections.sort(paintSummaryPanel.vectors);
                 paintSummaryPanel.doPaint(outputFolder + "/vsBackground");
-                setProgress(99);
+                //setProgress(99);
                 
                 for (int i = 0; i < 2; i++) {
-                    Graphics2D g2 = (Graphics2D) getGraphics();
+                    //Graphics2D g2 = (Graphics2D) getGraphics();
                     int totalDistance = (int)(SUMMARY_SCALE_FACTOR*120d);
                     for (Vector vector : vectorsUni.values()) {
                         int fontSize = (int)(vector.length * SUMMARY_SCALE_FACTOR * fontScaler);
                         if (fontSize > 1) {
-                            g2.setFont(new Font("Arial", Font.PLAIN, fontSize));
+                           // g2.setFont(new Font("Arial", Font.PLAIN, fontSize));
                             double r = totalDistance;
                             double a = getRads(0, 0, vector.x, vector.y);
                             a = Math.PI*2.0 - a;
                             Point point = getPoint(new Point(0, 0), r, a);
-                            totalDistance += g2.getFontMetrics().getHeight();
+                            totalDistance += 50; 
+                            //totalDistance += g2.getFontMetrics().getHeight();
                         }
                     }
                     SUMMARY_IMAGE_WIDTH = (int)(totalDistance * 2.2d);
@@ -1117,28 +727,13 @@ public class PSEA extends JPanel {
                 paintSummaryPanel.vectors = new ArrayList<Vector>(vectorsUni.values());
                 Collections.sort(paintSummaryPanel.vectors);
                 paintSummaryPanel.doPaint(outputFolder + "/vsUniform");
-                setProgress(100);
+                //setProgress(100);
             } catch (Exception ex) {
-                if (writer != null) {
-                    writer.flush();
-                    writer.close();
-                }
+            	System.out.println("caught!");
+          
                 ex.printStackTrace();
             }
-            
-            return null;
-        }
-
-
-        @Override
-        public void done() {
-            setProgress(100);
-            Toolkit.getDefaultToolkit().beep();
-            if (writer != null) {
-                writer.flush();
-                writer.close();
-            }
-        }
+               
     }
     
     public TreeMap<Double, Double> getUniCdf(TreeMap<Double, Double> xCdf, double min, double max) {
