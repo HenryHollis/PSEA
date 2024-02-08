@@ -71,12 +71,12 @@ public class PSEA2 extends JPanel {
     JLabel step5StatusLabel;
 
     Random random = new Random();
+	long s = 42;  //random seed
     OutputGenerator outputGenerator;
 
     HashMap<String, Double> items = new HashMap<String, Double>();
     HashMap<String, HashSet<String>> sets = new HashMap<String, HashSet<String>>();
     TreeMap<Integer, HashSet<String>> setSizeMap = new TreeMap<Integer, HashSet<String>>();
-    
     ArrayList<SortableSet> sortedSetList = new ArrayList<SortableSet>();
     public class SortableSet implements Comparable<SortableSet>{
         public String id;
@@ -137,11 +137,11 @@ public class PSEA2 extends JPanel {
     }
 
     public static void main(String[] args) {
-  	
     	new PSEA2(args);
     }
 
     public PSEA2(String[] args) {
+        random.setSeed(s);
     	boolean isOK = true;
     	String genes_path = args[0];
     	System.out.println("Absolute Path to gene-acrophase file: " + genes_path);
@@ -622,7 +622,6 @@ public class PSEA2 extends JPanel {
                 String line = reader.readLine();
                 while ((line = reader.readLine()) != null) {
                 	String[] tokens = line.split("\t");
-                	System.out.println(tokens[1]);
                 	setIdList.add(tokens[0]);
                 	setNList.add(tokens[1]);
                 	if (tokens[2].equals("NA")) {
@@ -630,8 +629,6 @@ public class PSEA2 extends JPanel {
 	                	kuiperUniList.add(-1d);
                 	} else {
 	                	kuiperBgList.add(Double.parseDouble(tokens[2]));
-	                	System.out.println("breakpoint 1");
-	                	System.out.println(tokens[2]);
 	                	kuiperUniList.add(Double.parseDouble(tokens[3]));
                 	}
                 	vectorMagList.add(tokens[4]);
